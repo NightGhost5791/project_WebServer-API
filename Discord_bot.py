@@ -1,8 +1,11 @@
 import discord 
-from discord.ext import commands
+from discord_components import DiscordComponents, ComponentsBot, Button, SelectOption, Select
+import discord.ext.commands as commands
+
 import random
 
 client = commands.Bot(command_prefix="!")
+DiscordComponents(client)
 
 player1 = ""
 player2 = ""
@@ -51,7 +54,19 @@ async def tictactoe(ctx, p1: discord.Member, p2: discord.Member):
             await ctx.send("<@" + str(player1.id) + "> Ходит первым")
         elif num == 2:
             turn = player2
-            await ctx.send("It is <@" + str(player2.id) + "> Ходит первым")
+            await ctx.send("<@" + str(player2.id) + "> Ходит первым")
+
+        await ctx.send(components = [
+            [Button(label="1"), Button(label="2"), Button(label="3")],
+            [Button(label="4"), Button(label="5"), Button(label="6")],
+            [Button(label="7"), Button(label="8"), Button(label="9")]])
+
+        interaction = await client.wait_for("button_click")
+        for i in range(1, 10):
+            if interaction.component.label == str(i):
+                await ctx.send(i)
+                place(i)
+
     else:
         await ctx.send("Партия ещё не закончилась")
 
@@ -118,8 +133,8 @@ async def tictactoe_error(ctx, error):
 @place.error
 async def place_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
-         awaitctx.send("Выберите клетку")
+        await ctx.send("Выберите клетку")
     elif isinstance(error, commands.BadArgument):
         await ctx.send("Введите целое число")
 
-client.run("TOKEN")
+client.run("OTQ5OTgyMjg4NjQzNDg5ODE0.YiSR8w.BDmfAjT5S03Pbj7MuSvb3JXsEGU")
