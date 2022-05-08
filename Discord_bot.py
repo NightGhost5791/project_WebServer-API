@@ -3,7 +3,21 @@ import discord
 from discord_components import DiscordComponents, ComponentsBot, Button
 import discord.ext.commands as commands
 import random 
+import sqlite3
 # Импортируемые библиотеки
+
+db = sqlite3.connect('topplayers.db')
+sql = db.cursor()
+
+sql.execute("""CREATE TABLE IF NOT EXISTS players (
+    name STRING PRIMARY KEY UNIQUE NOT NULL,
+    tictactoe_wins INT,
+    word_game_wins INT
+)""")
+
+db.commit()
+sql.close()
+db.close()
 
 client = commands.Bot(command_prefix="!") # Префикс для активации команд
 DiscordComponents(client)
@@ -27,15 +41,16 @@ WinningConditions = [[0, 1, 2],
 
 @client.command() # Добавление команды с названием instruction
 async def instruction(ctx):
-    await ctx.send('1. !tictactoe Игрок1 Игрок2\n Начать играть в "Крестики-Нолики"')
-    await ctx.send('2. !wordgame Игрок1 Игрок2\n Начать "Игру в слова"')
+    await ctx.send('1. !tictactoe Игрок1 Игрок2\n Начать играть в "Крестики-Нолики"\n  !place номер клетки')
+    await ctx.send('2. !wordgame Игрок1 Игрок2\n Начать "Слова из слов"\n  !word слово')
     # Вывод инструкции по боту в чат
 
 @client.command() # Добавление команды с названием tictactoe для запуска игры "Крестики-Нолики"
 async def tictactoe(ctx, p1: discord.Member, p2: discord.Member):
     global count, player1, player2, turn, GameOver
     # Глобальные переменные 
-    
+    add_players(p1, p2)
+
     if GameOver: # Условие окончания игры
         global board
         board = [":white_large_square:", ":white_large_square:", ":white_large_square:",
@@ -66,28 +81,29 @@ async def tictactoe(ctx, p1: discord.Member, p2: discord.Member):
         if num == 1:
             turn = player1
             await ctx.send("<@" + str(player1.id) + "> Ходит первым")
+
         elif num == 2:
             turn = player2
             await ctx.send("<@" + str(player2.id) + "> Ходит первым")
-
+        '''
         await ctx.send(components = [
             [Button(label=1), Button(label=2), Button(label=3)],
             [Button(label=4), Button(label=5), Button(label=6)],
             [Button(label=7), Button(label=8), Button(label=9)]]) # Создание кнопок для упрощённого ввода команд
+        '''
     else:
         await ctx.send("Партия ещё не закончилась") # Ошибка при попытке создания новой партии
-
+'''
 @client.event # Событие нажатия на кнопку
 async def on_button_click(ctx):  
     await client.loop.create_task(place(ctx, int(ctx.component.label)))
     # Вызов функции при нажатии на кнопку 
-
+'''
 @client.command() # Создание функции для замены пустой клетки поля на крестик или нолик
 async def place(ctx, pos: int):
     global turn, player1, player2, board, count, GameOver 
     if not GameOver:
         mark = ""
-
         if turn == ctx.author:
             if turn == player1:
                 mark = ":regional_indicator_x:"
@@ -128,7 +144,6 @@ async def place(ctx, pos: int):
     else:
         await ctx.send("Для начала новой игры введите: !tictactoe Игрок1 Игрок2")
 
-
 def checkWinner(WinningConditions, mark): # Функция для проверки победителя
     global GameOver
     for condition in WinningConditions:
@@ -154,6 +169,8 @@ async def place_error(ctx, error):
 @client.command() # Добавление функции wordgame для запуска "Слова из Слов"
 async def wordgame(ctx, p1: discord.Member, p2: discord.Member):
     global count, player1, player2, turn, GameOver
+    add_players(p1, p2)
+
     if GameOver:
         turn = ""
         GameOver = False
@@ -206,5 +223,19 @@ async def word(ctx, wrd):
     else:
         await ctx.send("Для начала новой игры введите: !wordgame Игрок1 Игрок2")
 
-client.run("OTQ5OTgyMjg4NjQzNDg5ODE0.YiSR8w.011_NreopoTk-_rIARSZhR_k7ro") # Запуск бота по текущему токену 
+def add_players(p1, p2): # Добавление игроков в базу данных
+    db = sqlite3.connect('topplayers.db')
+    sql = db.cursor()
+    sql.execute("SELECT name FROM players WHERE name = ?", [str(p1)])
+    if sql.fetchone() is None:
+        sql.execute("INSERT INTO players VALUES (?, ?, ?)", (str(p1), 0, 0))
+        db.commit()
+    sql.execute("SELECT name FROM players WHERE name = ?", [str(p2)])
+    if sql.fetchone() is None:
+        sql.execute("INSERT INTO players VALUES (?, ?, ?)", (str(p2), 0, 0))
+        db.commit()
+    sql.close()
+    db.close()
+
+client.run("OTQ5OTgyMjg4NjQzNDg5ODE0.YiSR8w.6lLy3WOS8zgVsybG1tclLMdYKp8") # Запуск бота по текущему токену 
 
